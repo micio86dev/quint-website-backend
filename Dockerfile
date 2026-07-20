@@ -17,5 +17,6 @@ COPY pb_hooks ./pb_hooks
 # NOTE: no Docker VOLUME instruction — persistence for /pb/pb_data is provided by a
 # Railway Volume (dashboard) in production, and a named volume in docker-compose locally.
 EXPOSE 8090
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -q -O /dev/null http://localhost:8090/api/quint/health || exit 1
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb/pb_data", "--migrationsDir=/pb/pb_migrations"]
+# Listen on Railway's injected $PORT (falls back to 8090 for local docker-compose).
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -q -O /dev/null "http://localhost:${PORT:-8090}/api/quint/health" || exit 1
+CMD ["/bin/sh", "-c", "exec /pb/pocketbase serve --http=0.0.0.0:${PORT:-8090} --dir=/pb/pb_data --migrationsDir=/pb/pb_migrations"]
