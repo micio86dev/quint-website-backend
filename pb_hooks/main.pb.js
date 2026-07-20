@@ -1,3 +1,28 @@
+// Ensure a superadmin exists on every boot, using env vars (headless-friendly:
+// avoids the PocketBase installer-token flow on Railway). Idempotent + safe.
+onBootstrap((e) => {
+  e.next();
+  try {
+    const email = $os.getenv('PB_ADMIN_EMAIL');
+    const password = $os.getenv('PB_ADMIN_PASSWORD');
+    if (!email || !password) return;
+    try {
+      e.app.findAuthRecordByEmail('_superusers', email);
+      return; // already exists
+    } catch (_) {
+      // not found → create it
+    }
+    const col = e.app.findCollectionByNameOrId('_superusers');
+    const rec = new Record(col);
+    rec.set('email', email);
+    rec.setPassword(password);
+    e.app.save(rec);
+    console.log('[quint] superadmin ensured for ' + email);
+  } catch (err) {
+    console.log('[quint] superadmin bootstrap error: ' + err);
+  }
+});
+
 routerAdd('GET', '/api/quint/health', (e) => e.json(200, { status: 'ok' }));
 routerAdd('POST', '/api/quint/contact', (e) => {
   const clean = (value, max) => String(value || '').trim().slice(0, max);
