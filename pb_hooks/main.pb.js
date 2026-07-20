@@ -43,3 +43,23 @@ routerAdd('POST', '/api/quint/contact', (e) => {
   e.app.save(record);
   return e.json(201, { accepted: true });
 }, $apis.bodyLimit(4096));
+
+// ── Auto-rebuild the static frontend on Vercel when CMS content changes ──
+// The site is statically generated, so a content edit only goes live after a
+// rebuild. This calls a Vercel Deploy Hook (URL in the VERCEL_DEPLOY_HOOK env
+// var) on any create/update/delete of a content collection. No-op if unset.
+const triggerVercelRebuild = (e) => {
+  const url = $os.getenv('VERCEL_DEPLOY_HOOK');
+  if (url) {
+    try {
+      $http.send({ url: url, method: 'POST', timeout: 10 });
+      console.log('[quint] vercel rebuild triggered');
+    } catch (err) {
+      console.log('[quint] vercel rebuild trigger failed: ' + err);
+    }
+  }
+  e.next();
+};
+onRecordAfterCreateSuccess(triggerVercelRebuild, 'site_text', 'products', 'faqs', 'capabilities', 'statistics', 'platform_signals', 'legal_pages');
+onRecordAfterUpdateSuccess(triggerVercelRebuild, 'site_text', 'products', 'faqs', 'capabilities', 'statistics', 'platform_signals', 'legal_pages');
+onRecordAfterDeleteSuccess(triggerVercelRebuild, 'site_text', 'products', 'faqs', 'capabilities', 'statistics', 'platform_signals', 'legal_pages');
